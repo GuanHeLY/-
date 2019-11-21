@@ -1,0 +1,35 @@
+树分为同步和异步：
+	同步树：
+		一次性加载所有节点（效率会较慢），一般直接在页面加载的时候就加载了树的全部节点。一般树较小或必须用同步树才能实现的时候才使用同步树，节点多慎用，电脑反应慢的，分分钟卡死。下面是实现同步树的方法：
+    1.jsp中引用<ta:tree></ta:tree>标签
+      <ta:tree id="tree310" childKey="id" nameKey="name" checkable="true"  parentKey="pid" async="false" chkboxType="{'Y':'s','N':'s'}"/>
+      (1)id:树的唯一标识，一个页面中不可以存在id相同的树；
+      (2)childKey:子节点id，子节点id要和数据库查询语句的子节点的别名要一致；
+      (3)nameKey:节点要显示在页面上的名字，nameKey要和数据库查询语句的节点名称的别名保持一致；
+      (4)parentKey:父节点id，父节点id要和数据库查询语句的父节点id别名保持一致；
+      (5)checkable:节点前面是否显示复选框，true显示，false不显示；
+      (6)async:是否开启异步树，true为异步树，不写（默认false）或false为同步树
+    因此写在action的execute()方法里，具体写法如下：
+		List list = super.getDao().queryForList("record.getCurrentAllchildrenList",dto);
+		String json = JSonFactory.bean2json(list);
+		request.setAttribute("tree310",json);//tree310为页面中ta:tree的ID
+		展开树和收起树：展开：Base.expandTree('tree310');   收起：Base.collapseTree('tree310');
+		设置树的某个节点的复选框被勾选：
+			var treeobj = Base.getObj("tree310");
+			treeobj.checkNode(treeobj.getNodeByParam("id",data.fieldData.list310[i].aab301),true);//data.fieldData.list310[i].aab301为设置选中节点的ID
+	
+	
+	异步树：
+		一次性只加载规定的某一层级的，例如行政区划的异步树，页面加载时只加载省一级，点击省一级前面的"+"时，再加载市一级，异步树最明显的好处就是加载快，不需要一次加载全部节点，可以提高系统运行效率。
+		如何开启异步树？
+			1.ta:tree标签中，让async属性为"true"，此时，就创建好了一颗异步树；
+			2.asyncUrl属性填写异步加载子节点的action方法地址，这样，在你点击省一级前面"+"时，他才知道去哪里获取子节点。
+		如果我想让数据库中已存在的节点的复选框被勾选上，怎么处理？
+			我们知道，同步树是一次性加载，那么在页面加载完的时候，利用上述的方法就可以设置被选中，但是异步树是一次只加载一部分，无法像同步树那样设置被选中，其实，异步树提供了一个加载成功的回调：
+			asyncSuccess：ta:tree的一个属性，该事件在异步操作结束并成功时执行，具体使用为在ta:tree标签添加asyncSuccess属性，例如：asyncSuccess=fnSuccess，注意，不加括号，在js中的方法写法如下：
+				function fnSuccess(event,treeId,treeNode,msg){}
+			所以，要解决该问题，可以采取如下方式：
+				function fnSuccess(event,treeId,treeNode,msg){
+					var treeobj = Base.getObj("tree310");
+					treeobj.checkNode(treeobj.getNodeByParam("id",data.fieldData.list310[i].aab301),true);//data.fieldData.list310[i].aab301为设置选中节点的ID
+				}
